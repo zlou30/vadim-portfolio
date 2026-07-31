@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import Image from "next/image";
 
@@ -14,10 +13,36 @@ import {
   type ContactResourceIcon,
 } from "../../data/contacts";
 
+const SITE_URL = "https://www.vadimgunyakov.ru";
+const SITE_NAME = "Вадим Гуняков";
+const CONTACTS_URL = `${SITE_URL}/contacts`;
+const CONTACTS_TITLE = "Контакты";
+const CONTACTS_SOCIAL_TITLE = `${CONTACTS_TITLE} — ${SITE_NAME}`;
+const CONTACTS_DESCRIPTION =
+  "Контакты Вадима Гунякова, резюме и ссылки на профессиональные профили.";
+
 export const metadata: Metadata = {
-  title: "Контакты",
-  description:
-    "Способы связаться с Вадимом Гуняковым по вопросам работы, сотрудничества и цифровых проектов.",
+  title: CONTACTS_TITLE,
+  description: CONTACTS_DESCRIPTION,
+
+  alternates: {
+    canonical: CONTACTS_URL,
+  },
+
+  openGraph: {
+    type: "website",
+    locale: "ru_RU",
+    url: CONTACTS_URL,
+    siteName: SITE_NAME,
+    title: CONTACTS_SOCIAL_TITLE,
+    description: CONTACTS_DESCRIPTION,
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: CONTACTS_SOCIAL_TITLE,
+    description: CONTACTS_DESCRIPTION,
+  },
 };
 
 function TelegramIcon() {
@@ -455,13 +480,11 @@ export default function ContactsPage() {
         >
           <figure
             className={[
-              "order-2 relative aspect-[4/5]",
-              "w-full",
+              "order-2 relative aspect-[4/3]",
+              "max-h-[250px] w-full",
               "overflow-hidden rounded-[22px]",
               "border border-[var(--color-line)]",
               "bg-[#E9E2DA]",
-              "sm:aspect-[4/3]",
-              "sm:max-h-[250px]",
               "sm:max-w-[540px]",
               "md:order-1 md:aspect-[4/5]",
               "md:max-h-none md:max-w-none",
@@ -480,35 +503,21 @@ export default function ContactsPage() {
                   "(min-width: 768px) 38vw,",
                   "calc(100vw - 32px)",
                 ].join(" ")}
-                style={
-                  {
-                    "--contact-photo-position": photo.objectPosition,
-                  } as CSSProperties
+                style={{
+                  objectPosition: photo.objectPosition,
+                }}
+                className={
+                  photo.fit === "cover" ? "object-cover" : "object-contain"
                 }
-                className={[
-                  "object-cover object-[center_28%]",
-                  "sm:object-[var(--contact-photo-position)]",
-                  photo.fit === "cover"
-                    ? "sm:object-cover"
-                    : "sm:object-contain",
-                ].join(" ")}
               />
             ) : (
-              <div
-                className={[
-                  "relative h-full w-full",
-                  "overflow-hidden rounded-[inherit]",
-                ].join(" ")}
-              >
+              <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[24px]">
                 <Image
                   src="/images/profile/vadim-contacts.webp"
                   alt="Вадим Гуняков"
                   fill
                   sizes="(max-width: 767px) 100vw, (max-width: 1279px) 45vw, 520px"
-                  className={[
-                    "object-cover object-[center_28%]",
-                    "sm:object-center",
-                  ].join(" ")}
+                  className="object-cover object-center"
                 />
               </div>
             )}
@@ -610,10 +619,8 @@ export default function ContactsPage() {
               <li
                 key={topic}
                 className={[
-                  "border-t",
-                  "border-[var(--color-line)]",
-                  "py-4 text-base",
-                  "font-medium leading-6",
+                  "border-t border-[var(--color-line)]",
+                  "py-4 text-base font-medium leading-6",
                   "text-[var(--color-text-primary)]",
                   "md:py-5 md:text-[17px]",
                 ].join(" ")}

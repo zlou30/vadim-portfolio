@@ -8,10 +8,36 @@ import {
   groupProjectsByYear,
 } from "../../lib/projects";
 
+const SITE_URL = "https://www.vadimgunyakov.ru";
+const SITE_NAME = "Вадим Гуняков";
+const PROJECTS_URL = `${SITE_URL}/projects`;
+const PROJECTS_TITLE = "Проекты";
+const PROJECTS_SOCIAL_TITLE = `${PROJECTS_TITLE} — ${SITE_NAME}`;
+const PROJECTS_DESCRIPTION =
+  "Кейсы Вадима Гунякова в разработке, AI, аналитике, автоматизации и интернет-маркетинге.";
+
 export const metadata: Metadata = {
-  title: "Проекты",
-  description:
-    "Проекты Вадима Гунякова в разработке, автоматизации, аналитике и интернет-маркетинге.",
+  title: PROJECTS_TITLE,
+  description: PROJECTS_DESCRIPTION,
+
+  alternates: {
+    canonical: PROJECTS_URL,
+  },
+
+  openGraph: {
+    type: "website",
+    locale: "ru_RU",
+    url: PROJECTS_URL,
+    siteName: SITE_NAME,
+    title: PROJECTS_SOCIAL_TITLE,
+    description: PROJECTS_DESCRIPTION,
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: PROJECTS_SOCIAL_TITLE,
+    description: PROJECTS_DESCRIPTION,
+  },
 };
 
 export default function ProjectsPage() {
