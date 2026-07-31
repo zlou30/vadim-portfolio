@@ -2,20 +2,19 @@ import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-import type {
-  Project,
-  ProjectCatalogItem,
-  ProjectCoverFit,
-} from "../../types/project";
+import type { Project, ProjectCatalogItem } from "../../types/project";
 import { Tag } from "../ui/Tag";
 
-type HomeProjectCardVariant = "default" | "featured" | "secondary";
+type HomeProject = Project | ProjectCatalogItem;
 
-type HomeProjectSource = Project | ProjectCatalogItem;
+type DefaultProjectCardProps = {
+  project: Project;
+  variant?: "default";
+};
 
 type HomeProjectCardProps = {
-  project: HomeProjectSource;
-  variant?: HomeProjectCardVariant;
+  project: HomeProject;
+  variant: "featured" | "secondary";
 };
 
 type CatalogProjectCardProps = {
@@ -23,29 +22,18 @@ type CatalogProjectCardProps = {
   variant: "catalog";
 };
 
-type ProjectCardProps = HomeProjectCardProps | CatalogProjectCardProps;
-
-type HomeProjectView = {
-  slug: string;
-  title: string;
-  direction: string;
-  summary: string;
-  resultLabel: string;
-  result: string | null;
-  featuredTags: readonly string[];
-  cover: string | null;
-  coverAlt: string;
-  coverFit: ProjectCoverFit;
-  coverNumber: string | null;
-};
+type ProjectCardProps =
+  | DefaultProjectCardProps
+  | HomeProjectCardProps
+  | CatalogProjectCardProps;
 
 type ProjectCoverProps = {
-  project: HomeProjectView;
+  project: HomeProject;
   featured: boolean;
 };
 
 type ProjectContentProps = {
-  project: HomeProjectView;
+  project: HomeProject;
   featured: boolean;
   stretch?: boolean;
 };
@@ -58,84 +46,120 @@ const threeLineClampStyle: CSSProperties = {
 
 const UNCONFIRMED_PERIOD = "Период уточняется";
 
-function isLegacyProject(project: HomeProjectSource): project is Project {
-  return "summary" in project;
-}
+function getHomeProjectDescription(project: HomeProject): string {
+  if ("description" in project && typeof project.description === "string") {
+    const description = project.description.trim();
 
-function normalizeHomeProject(project: HomeProjectSource): HomeProjectView {
-  if (isLegacyProject(project)) {
-    return {
-      slug: project.slug,
-      title: project.title,
-      direction: project.direction,
-      summary: project.summary,
-      resultLabel: project.resultLabel,
-      result: project.result,
-      featuredTags: project.featuredTags,
-      cover: project.cover,
-      coverAlt: project.coverAlt,
-      coverFit: project.coverFit,
-      coverNumber: project.coverNumber,
-    };
+    if (description.length > 0) {
+      return description;
+    }
   }
 
-  return {
-    slug: project.slug,
-    title: project.title,
-    direction: project.direction,
-    summary: project.description,
-    resultLabel: "Подтверждённый факт",
-    result: project.fact,
-    featuredTags: project.tags.slice(0, 4),
-    cover: project.cover,
-    coverAlt: project.coverAlt ?? `Обложка проекта «${project.title}»`,
-    coverFit: "cover",
-    coverNumber: null,
-  };
+  if ("summary" in project && typeof project.summary === "string") {
+    return project.summary.trim();
+  }
+
+  return "";
+}
+
+function getHomeProjectTags(project: HomeProject): readonly string[] {
+  if (
+    "featuredTags" in project &&
+    Array.isArray(project.featuredTags) &&
+    project.featuredTags.length > 0
+  ) {
+    return project.featuredTags;
+  }
+
+  if ("tags" in project && Array.isArray(project.tags)) {
+    return project.tags;
+  }
+
+  return [];
+}
+
+function getHomeProjectCoverAlt(project: HomeProject): string {
+  if (
+    "coverAlt" in project &&
+    typeof project.coverAlt === "string" &&
+    project.coverAlt.trim().length > 0
+  ) {
+    return project.coverAlt;
+  }
+
+  return `Обложка проекта «${project.title}»`;
+}
+
+function getHomeProjectCoverNumber(project: HomeProject): string | null {
+  if ("coverNumber" in project && typeof project.coverNumber === "string") {
+    return project.coverNumber;
+  }
+
+  return null;
 }
 
 function ProjectCover({ project, featured }: ProjectCoverProps) {
+  const projectHref = `/projects/${project.slug}`;
+
   const imageSizes = featured
-    ? "(min-width: 1280px) 650px, (min-width: 1024px) 52vw, 100vw"
-    : "(min-width: 1024px) 46vw, 100vw";
+    ? [
+        "(min-width: 1280px) 650px,",
+        "(min-width: 1024px) 52vw,",
+        "(min-width: 640px) calc(100vw - 96px),",
+        "calc(100vw - 60px)",
+      ].join(" ")
+    : [
+        "(min-width: 1280px) 560px,",
+        "(min-width: 1024px) 46vw,",
+        "(min-width: 640px) calc(100vw - 96px),",
+        "calc(100vw - 60px)",
+      ].join(" ");
 
   const coverSizeClasses = featured
     ? [
-        "h-[200px]",
-        "sm:h-[260px]",
+        "aspect-video",
+        "sm:aspect-auto sm:h-[260px]",
         "md:h-[300px]",
         "lg:h-[360px]",
         "xl:h-[410px]",
       ].join(" ")
     : [
-        "h-[200px]",
-        "sm:h-[240px]",
+        "aspect-video",
+        "sm:aspect-auto sm:h-[240px]",
         "md:h-[280px]",
         "lg:h-[270px]",
         "xl:h-[292px]",
       ].join(" ");
 
+  const coverNumber = getHomeProjectCoverNumber(project);
+
   return (
-    <div
+    <Link
+      href={projectHref}
+      aria-label={`Открыть кейс «${project.title}»`}
       className={[
-        "relative block w-full min-w-0",
+        "group/cover relative block",
+        "w-full min-w-0",
         "overflow-hidden",
         coverSizeClasses,
         featured ? "rounded-[18px] lg:rounded-[20px]" : "rounded-[20px]",
+        "focus-visible:outline",
+        "focus-visible:outline-2",
+        "focus-visible:outline-offset-[3px]",
+        "focus-visible:outline-[var(--color-accent)]",
       ].join(" ")}
     >
       {project.cover ? (
         <Image
           src={project.cover}
-          alt={project.coverAlt}
+          alt={getHomeProjectCoverAlt(project)}
           fill
           sizes={imageSizes}
           className={[
-            project.coverFit === "cover" ? "object-cover" : "object-contain",
-            "bg-[#E9E2DA]",
-            "transition-transform duration-[220ms]",
-            "ease-out",
-            "group-hover/home-project:scale-[1.02]",
+            "block h-full w-full",
+            "object-cover object-center",
+            "transition-transform duration-200",
+            "group-hover/cover:scale-[1.01]",
             "motion-reduce:transform-none",
             "motion-reduce:transition-none",
           ].join(" ")}
@@ -144,8 +168,9 @@ function ProjectCover({ project, featured }: ProjectCoverProps) {
         <div
           aria-hidden="true"
           className={[
-            "flex h-full w-full flex-col",
-            "justify-between bg-[#E9E2DA]",
+            "flex h-full w-full",
+            "flex-col justify-between",
+            "bg-[#E9E2DA]",
             featured ? "p-6 sm:p-8 lg:p-7 xl:p-9" : "p-6 sm:p-8 lg:p-6 xl:p-7",
           ].join(" ")}
         >
@@ -156,7 +181,7 @@ function ProjectCover({ project, featured }: ProjectCoverProps) {
             ].join(" ")}
           />
 
-          {project.coverNumber ? (
+          {coverNumber ? (
             <span
               className={[
                 "font-semibold leading-none",
@@ -167,17 +192,19 @@ function ProjectCover({ project, featured }: ProjectCoverProps) {
                   : "text-[30px] sm:text-[34px]",
               ].join(" ")}
             >
-              {project.coverNumber}
+              {coverNumber}
             </span>
           ) : null}
         </div>
       )}
-    </div>
+    </Link>
   );
 }
 
-function ProjectTags({ tags }: { tags: readonly string[] }) {
-  if (tags.length === 0) {
+function ProjectTags({ tags }: { tags?: readonly string[] }) {
+  const safeTags = tags ?? [];
+
+  if (safeTags.length === 0) {
     return null;
   }
 
@@ -191,16 +218,14 @@ function ProjectTags({ tags }: { tags: readonly string[] }) {
         "lg:text-sm",
       ].join(" ")}
     >
-      {tags.map((tag, index) => (
-        <li key={`${tag}-${index}`} className="flex max-w-full">
-          <span className="break-words">{tag}</span>
+      {safeTags.map((tag, index) => (
+        <li key={`${tag}-${index}`} className="flex whitespace-nowrap">
+          <span>{tag}</span>
 
-          {index < tags.length - 1 ? (
+          {index < safeTags.length - 1 ? (
             <span
               aria-hidden="true"
-              className={["mx-2 shrink-0", "text-[var(--color-line)]"].join(
-                " ",
-              )}
+              className={["mx-2", "text-[var(--color-line)]"].join(" ")}
             >
               ·
             </span>
@@ -211,17 +236,24 @@ function ProjectTags({ tags }: { tags: readonly string[] }) {
   );
 }
 
-function ProjectCaseLabel() {
+function ProjectCaseLink({ project }: { project: HomeProject }) {
   return (
-    <span
+    <Link
+      href={`/projects/${project.slug}`}
+      aria-label={`Смотреть кейс «${project.title}»`}
       className={[
-        "mt-4 inline-flex min-h-11",
-        "items-center gap-2",
+        "group/link mt-4 inline-flex",
+        "min-h-11 items-center gap-2",
+        "rounded-[6px]",
         "text-[15px] font-semibold leading-5",
         "text-[var(--color-text-primary)]",
-        "transition-colors duration-[220ms]",
-        "ease-out",
-        "group-hover/home-project:text-[var(--color-accent-hover)]",
+        "transition-colors duration-200",
+        "hover:text-[var(--color-accent)]",
+        "active:text-[var(--color-accent-active)]",
+        "focus-visible:outline",
+        "focus-visible:outline-2",
+        "focus-visible:outline-offset-[3px]",
+        "focus-visible:outline-[var(--color-accent)]",
         "motion-reduce:transition-none",
         "lg:text-base",
       ].join(" ")}
@@ -232,16 +264,16 @@ function ProjectCaseLabel() {
         aria-hidden="true"
         className={[
           "text-lg leading-none",
-          "transition-transform duration-[220ms]",
-          "ease-out",
-          "group-hover/home-project:translate-x-1",
+          "transition-transform duration-200",
+          "group-hover/link:translate-x-1",
+          "group-active/link:translate-x-0",
           "motion-reduce:transform-none",
           "motion-reduce:transition-none",
         ].join(" ")}
       >
         →
       </span>
-    </span>
+    </Link>
   );
 }
 
@@ -250,6 +282,10 @@ function ProjectContent({
   featured,
   stretch = false,
 }: ProjectContentProps) {
+  const description = getHomeProjectDescription(project);
+
+  const projectTags = getHomeProjectTags(project);
+
   return (
     <div
       className={[
@@ -273,10 +309,6 @@ function ProjectContent({
           "mt-2 font-semibold",
           "tracking-[-0.035em]",
           "text-[var(--color-text-primary)]",
-          "transition-colors duration-[220ms]",
-          "ease-out",
-          "group-hover/home-project:text-[var(--color-accent-hover)]",
-          "motion-reduce:transition-none",
           featured
             ? [
                 "text-[30px] leading-[1.08]",
@@ -290,74 +322,58 @@ function ProjectContent({
               ].join(" "),
         ].join(" ")}
       >
-        {project.title}
-      </h3>
-
-      <p
-        className={[
-          "mt-4 font-normal",
-          "text-base leading-[26px]",
-          "text-[var(--color-text-primary)]",
-          "lg:text-[18px] lg:leading-[29px]",
-        ].join(" ")}
-      >
-        {project.summary}
-      </p>
-
-      {project.result ? (
-        <div
+        <Link
+          href={`/projects/${project.slug}`}
           className={[
-            "mt-5 border-l-2",
-            "border-[var(--color-accent)]",
-            "pl-4",
+            "rounded-[6px]",
+            "transition-colors duration-200",
+            "hover:text-[var(--color-accent)]",
+            "focus-visible:outline",
+            "focus-visible:outline-2",
+            "focus-visible:outline-offset-[3px]",
+            "focus-visible:outline-[var(--color-accent)]",
           ].join(" ")}
         >
-          <p
-            className={[
-              "text-[13px] font-semibold leading-5",
-              "text-[var(--color-text-secondary)]",
-            ].join(" ")}
-          >
-            {project.resultLabel}
-          </p>
+          {project.title}
+        </Link>
+      </h3>
 
-          <p
-            className={[
-              "mt-2 text-[15px] leading-6",
-              "text-[var(--color-text-primary)]",
-              "lg:text-base lg:leading-[26px]",
-            ].join(" ")}
-          >
-            {project.result}
-          </p>
-        </div>
+      {description ? (
+        <p
+          className={[
+            "mt-4 font-normal",
+            "text-base leading-[26px]",
+            "text-[var(--color-text-primary)]",
+            "lg:text-[18px]",
+            "lg:leading-[29px]",
+          ].join(" ")}
+        >
+          {description}
+        </p>
       ) : null}
 
       <div className={stretch ? "lg:mt-auto lg:pt-5" : ""}>
-        <ProjectTags tags={project.featuredTags} />
+        <ProjectTags tags={projectTags} />
 
-        <ProjectCaseLabel />
+        <ProjectCaseLink project={project} />
       </div>
     </div>
   );
 }
 
-function DefaultProjectCard({ project }: { project: HomeProjectSource }) {
-  const normalizedProject = normalizeHomeProject(project);
-
-  const tags = isLegacyProject(project) ? project.tags : project.tags;
-
-  const isTemporary = isLegacyProject(project) ? project.isTemporary : false;
+function DefaultProjectCard({ project }: { project: Project }) {
+  const tags = project.tags ?? [];
 
   return (
     <article
       className={[
         "flex h-full flex-col",
         "rounded-xl border",
-        "border-slate-200 bg-white p-6",
+        "border-slate-200",
+        "bg-white p-6",
       ].join(" ")}
     >
-      {isTemporary ? (
+      {project.isTemporary ? (
         <p
           className={[
             "mb-4 text-xs font-semibold",
@@ -369,25 +385,28 @@ function DefaultProjectCard({ project }: { project: HomeProjectSource }) {
         </p>
       ) : null}
 
-      <h3 className="text-xl font-semibold text-slate-950">
-        {normalizedProject.title}
+      <h3 className={["text-xl font-semibold", "text-slate-950"].join(" ")}>
+        {project.title}
       </h3>
 
-      <p className="mt-3 flex-1 leading-7 text-slate-600">
-        {normalizedProject.summary}
+      <p className={["mt-3 flex-1 leading-7", "text-slate-600"].join(" ")}>
+        {project.summary}
       </p>
 
-      <div className="mt-5 flex flex-wrap gap-2">
-        {tags.map((tag) => (
-          <Tag key={tag}>{tag}</Tag>
-        ))}
-      </div>
+      {tags.length > 0 ? (
+        <div className="mt-5 flex flex-wrap gap-2">
+          {tags.map((tag, index) => (
+            <Tag key={`${tag}-${index}`}>{tag}</Tag>
+          ))}
+        </div>
+      ) : null}
 
       <Link
-        href={`/projects/${normalizedProject.slug}`}
-        aria-label={`Смотреть кейс «${normalizedProject.title}»`}
+        href={`/projects/${project.slug}`}
+        aria-label={`Смотреть кейс «${project.title}»`}
         className={[
-          "mt-6 inline-flex min-h-11 items-center",
+          "mt-6 inline-flex min-h-11",
+          "items-center",
           "font-medium text-slate-900",
           "underline decoration-slate-300",
           "underline-offset-4",
@@ -406,8 +425,8 @@ function DefaultProjectCard({ project }: { project: HomeProjectSource }) {
   );
 }
 
-function CatalogProjectTags({ tags }: { tags: readonly string[] }) {
-  const visibleTags = tags.slice(0, 4);
+function CatalogProjectTags({ tags }: { tags?: readonly string[] }) {
+  const visibleTags = (tags ?? []).slice(0, 4);
 
   if (visibleTags.length === 0) {
     return null;
@@ -425,7 +444,7 @@ function CatalogProjectTags({ tags }: { tags: readonly string[] }) {
     >
       {visibleTags.map((tag, index) => (
         <li
-          key={tag}
+          key={`${tag}-${index}`}
           className={["inline-flex max-w-full", "items-center"].join(" ")}
         >
           <span className="break-words">{tag}</span>
@@ -454,8 +473,9 @@ function CatalogProjectCard({ project }: { project: ProjectCatalogItem }) {
       href={`/projects/${project.slug}`}
       aria-label={`Смотреть кейс «${project.title}»`}
       className={[
-        "group/catalog flex h-full w-full min-w-0",
-        "flex-col overflow-hidden",
+        "group/catalog flex h-full",
+        "w-full min-w-0 flex-col",
+        "overflow-hidden",
         "rounded-[20px] border",
         "border-[var(--color-line)]",
         "bg-[var(--color-surface)]",
@@ -476,8 +496,9 @@ function CatalogProjectCard({ project }: { project: ProjectCatalogItem }) {
     >
       <div
         className={[
-          "relative aspect-video w-full shrink-0",
-          "overflow-hidden border-b",
+          "relative aspect-video w-full",
+          "shrink-0 overflow-hidden",
+          "border-b",
           "border-[var(--color-line)]",
           "bg-[#E9E2DA]",
           "transition-colors duration-200",
@@ -497,7 +518,7 @@ function CatalogProjectCard({ project }: { project: ProjectCatalogItem }) {
               "calc(100vw - 32px)",
             ].join(" ")}
             className={[
-              "object-cover",
+              "object-cover object-center",
               "transition-transform duration-200",
               "group-hover/catalog:scale-[1.01]",
               "motion-reduce:transform-none",
@@ -505,10 +526,14 @@ function CatalogProjectCard({ project }: { project: ProjectCatalogItem }) {
             ].join(" ")}
           />
         ) : (
-          <div aria-hidden="true" className="h-full w-full p-4 sm:p-[18px]">
+          <div
+            aria-hidden="true"
+            className={["h-full w-full", "p-4 sm:p-[18px]"].join(" ")}
+          >
             <span
               className={[
-                "block h-0.5 w-7 rounded-full",
+                "block h-0.5 w-7",
+                "rounded-full",
                 "bg-[var(--color-accent)]",
               ].join(" ")}
             />
@@ -517,7 +542,7 @@ function CatalogProjectCard({ project }: { project: ProjectCatalogItem }) {
       </div>
 
       <div
-        className={["flex min-w-0 flex-1", "flex-col p-4 sm:p-[18px]"].join(
+        className={["flex min-w-0 flex-1", "flex-col p-4", "sm:p-[18px]"].join(
           " ",
         )}
       >
@@ -527,7 +552,8 @@ function CatalogProjectCard({ project }: { project: ProjectCatalogItem }) {
               className={[
                 "text-xs leading-[18px]",
                 "text-[var(--color-text-secondary)]",
-                "sm:text-[13px] sm:leading-5",
+                "sm:text-[13px]",
+                "sm:leading-5",
               ].join(" ")}
             >
               {project.period}
@@ -536,10 +562,11 @@ function CatalogProjectCard({ project }: { project: ProjectCatalogItem }) {
 
           <p
             className={[
-              "min-w-0 text-xs font-semibold",
-              "leading-[18px]",
+              "min-w-0 text-xs",
+              "font-semibold leading-[18px]",
               "text-[var(--color-accent)]",
-              "sm:text-[13px] sm:leading-5",
+              "sm:text-[13px]",
+              "sm:leading-5",
               hasConfirmedPeriod ? "mt-1" : "",
             ].join(" ")}
           >
@@ -579,9 +606,11 @@ function CatalogProjectCard({ project }: { project: ProjectCatalogItem }) {
           <p
             style={threeLineClampStyle}
             className={[
-              "mt-4 overflow-hidden border-l-2",
+              "mt-4 overflow-hidden",
+              "border-l-2",
               "border-[var(--color-accent)]",
-              "pl-3.5 text-sm leading-[1.55]",
+              "pl-3.5 text-sm",
+              "leading-[1.55]",
               "text-[var(--color-text-secondary)]",
             ].join(" ")}
           >
@@ -628,90 +657,65 @@ function CatalogProjectCard({ project }: { project: ProjectCatalogItem }) {
   );
 }
 
-function FeaturedHomeProjectCard({ project }: { project: HomeProjectView }) {
-  return (
-    <Link
-      href={`/projects/${project.slug}`}
-      aria-label={`Смотреть кейс «${project.title}»`}
-      className={[
-        "group/home-project grid min-w-0",
-        "rounded-[24px] border",
-        "border-[var(--color-line)]",
-        "bg-[var(--color-surface)]",
-        "p-3.5 sm:p-6 lg:p-7 xl:p-8",
-        "transition-[transform,border-color,box-shadow]",
-        "duration-[220ms] ease-out",
-        "hover:-translate-y-1",
-        "hover:border-[var(--color-accent)]",
-        "hover:shadow-[0_14px_30px_rgba(34,34,32,0.06)]",
-        "focus-visible:outline",
-        "focus-visible:outline-2",
-        "focus-visible:outline-offset-[3px]",
-        "focus-visible:outline-[var(--color-accent)]",
-        "motion-reduce:transform-none",
-        "motion-reduce:transition-[border-color,box-shadow]",
-        "lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]",
-        "lg:items-start lg:gap-8",
-        "xl:gap-12",
-      ].join(" ")}
-    >
-      <ProjectCover project={project} featured />
-
-      <div className="mt-5 sm:mt-6 lg:mt-0">
-        <ProjectContent project={project} featured />
-      </div>
-    </Link>
-  );
-}
-
-function SecondaryHomeProjectCard({ project }: { project: HomeProjectView }) {
-  return (
-    <Link
-      href={`/projects/${project.slug}`}
-      aria-label={`Смотреть кейс «${project.title}»`}
-      className={[
-        "group/home-project min-w-0",
-        "transition-[transform,border-color,box-shadow]",
-        "duration-[220ms] ease-out",
-        "hover:-translate-y-1",
-        "focus-visible:outline",
-        "focus-visible:outline-2",
-        "focus-visible:outline-offset-[3px]",
-        "focus-visible:outline-[var(--color-accent)]",
-        "motion-reduce:transform-none",
-        "motion-reduce:transition-[border-color,box-shadow]",
-        "lg:flex lg:h-full lg:flex-col",
-        "lg:rounded-[22px]",
-        "lg:border lg:border-[var(--color-line)]",
-        "lg:bg-[var(--color-surface)]",
-        "lg:p-6 xl:p-7",
-        "lg:hover:border-[var(--color-accent)]",
-        "lg:hover:shadow-[0_14px_30px_rgba(34,34,32,0.055)]",
-      ].join(" ")}
-    >
-      <ProjectCover project={project} featured={false} />
-
-      <ProjectContent project={project} featured={false} stretch />
-    </Link>
-  );
-}
-
 export function ProjectCard(props: ProjectCardProps) {
   if (props.variant === "catalog") {
     return <CatalogProjectCard project={props.project} />;
   }
 
-  const { project, variant = "default" } = props;
-
-  if (variant === "default") {
-    return <DefaultProjectCard project={project} />;
+  if (props.variant === undefined || props.variant === "default") {
+    return <DefaultProjectCard project={props.project} />;
   }
 
-  const normalizedProject = normalizeHomeProject(project);
+  const { project, variant } = props;
 
-  if (variant === "featured") {
-    return <FeaturedHomeProjectCard project={normalizedProject} />;
+  const isFeatured = variant === "featured";
+
+  if (isFeatured) {
+    return (
+      <article
+        className={[
+          "grid min-w-0",
+          "rounded-[24px]",
+          "border",
+          "border-[var(--color-line)]",
+          "bg-[var(--color-surface)]",
+          "p-3.5",
+          "sm:p-6",
+          "lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]",
+          "lg:items-start",
+          "lg:gap-8 lg:p-7",
+          "xl:gap-12 xl:p-8",
+        ].join(" ")}
+      >
+        <ProjectCover project={project} featured />
+
+        <div className="mt-5 sm:mt-6 lg:mt-0">
+          <ProjectContent project={project} featured />
+        </div>
+      </article>
+    );
   }
 
-  return <SecondaryHomeProjectCard project={normalizedProject} />;
+  return (
+    <article
+      className={[
+        "min-w-0",
+        "rounded-[24px]",
+        "border",
+        "border-[var(--color-line)]",
+        "bg-[var(--color-surface)]",
+        "p-3.5",
+        "sm:p-6",
+        "lg:flex lg:h-full",
+        "lg:flex-col",
+        "lg:rounded-[22px]",
+        "lg:p-6",
+        "xl:p-7",
+      ].join(" ")}
+    >
+      <ProjectCover project={project} featured={false} />
+
+      <ProjectContent project={project} featured={false} stretch />
+    </article>
+  );
 }

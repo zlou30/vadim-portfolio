@@ -201,9 +201,7 @@ export function Footer() {
                 "motion-reduce:transform-none",
                 "motion-reduce:transition-none",
               ].join(" ")}
-            >
-              ↑
-            </span>
+            ></span>
           </a>
         </div>
       </Container>

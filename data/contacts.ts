@@ -146,7 +146,7 @@ export const contactMethods: readonly ContactMethod[] = [
  */
 export const contactProfileLinks: ContactProfileLinks = {
   resumeUrl: "/documents/vadim-gunyakov-resume.pdf",
-  githubUrl: null,
+  githubUrl: "https://github.com/zlou30",
   hhUrl:
     "https://togliatti.hh.ru/resume/dadb8868ff10cebd6a0039ed1f336877593978",
 };
