@@ -1,0 +1,57 @@
+.skillModule {
+  --skill-rotate-x: 0deg;
+  --skill-rotate-y: 0deg;
+
+  transform: perspective(1000px) translateY(0) scale(1)
+    rotateX(var(--skill-rotate-x)) rotateY(var(--skill-rotate-y));
+
+  transform-origin: center;
+  transform-style: preserve-3d;
+
+  transition: transform 200ms ease-out, border-color 200ms ease-out,
+    box-shadow 200ms ease-out, background-color 200ms ease-out;
+}
+
+.skillMarker {
+  transition: width 200ms ease-out;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .skillModule {
+    will-change: transform;
+  }
+
+  .skillModule:hover {
+    border-color: var(--color-accent);
+    background: var(--color-surface);
+
+    transform: perspective(1000px) translateY(-4px) scale(1.008)
+      rotateX(var(--skill-rotate-x)) rotateY(var(--skill-rotate-y));
+
+    box-shadow: 0 14px 30px rgba(34, 34, 32, 0.06);
+  }
+
+  .skillModule:hover .skillMarker {
+    width: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skillModule {
+    transform: none;
+    transition: border-color 0.01ms linear, background-color 0.01ms linear;
+  }
+
+  .skillMarker {
+    transition: none;
+  }
+
+  .skillModule:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .skillModule:hover .skillMarker {
+    width: 32px;
+  }
+}
